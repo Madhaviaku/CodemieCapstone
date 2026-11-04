@@ -8,7 +8,7 @@ public class ApiDocumentationSyncVerifier {
 
     public static void main(String[] args) throws Exception {
         String expected = ApiDocumentationGenerator.generateMarkdown();
-        Path docsPath = Path.of("docs", "api.md");
+        Path docsPath = ApiDocumentationGenerator.apiDocsPath();
         if (!Files.exists(docsPath)) {
             throw new IllegalStateException(
                     "ERROR: API documentation is out of sync. Run 'mvn -q compile exec:java@generate-api-docs' to regenerate."

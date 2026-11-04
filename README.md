@@ -32,7 +32,7 @@ The UI is allowed to call the API from `http://localhost:5173` and `http://127.0
 
 ### Backend
 
-Java Spring Boot API in the project root.
+Java Spring Boot API in `backend`.
 
 - `GET /api/books` lists books with pagination. Default page size is 20. Maximum size is 100.
 - `GET /api/books/{isbn}` returns one book. Hyphens in the ISBN are accepted. The stored value is digits only.
@@ -78,6 +78,8 @@ React application in `frontend`.
 
 Regenerate the document after an API contract change, then commit it:
 
+From `backend`:
+
 ```text
 mvn -q compile exec:java@generate-api-docs
 ```
@@ -98,24 +100,22 @@ The project compiles to Java 17 bytecode and runs on the installed JDK (Java 25 
 
 ```text
 mm-learning-group-1/
-  pom.xml
   README.md
-  docs/api.md
-  src/main/java/com/library/catalog/
-    controller/     REST endpoints
-    service/        validation and catalog rules
-    repository/     JPA queries
-    entity/         books table
-    dto/            request, response, and page payloads
-    exception/      400, 404, 409, and 500 responses
-    config/         CORS, request logging, sample books
-  src/test/java/   service, API, and documentation tests
-  frontend/         React catalog UI
+  pom.xml                      Root Maven build for backend and tests
+  docs/                        API reference
+  backend/                     Spring Boot catalog API
+  frontend/                    React catalog UI
+  database/                    Schema and seed SQL
+  tests/
+    features/                  Cucumber scenarios
+    step-definitions/          Step definitions
+    e2e/                       Selenium page objects and the JUnit suite
+  build/                       Scripts and the generated test report
 ```
 
 ## Run the applications
 
-Backend, from `mm-learning-group-1`. Java 17 or newer and Maven are required.
+Backend, from `backend`. Java 17 or newer and Maven are required.
 
 ```text
 mvn spring-boot:run
@@ -140,18 +140,32 @@ npm run preview
 
 ## Tests
 
+Backend unit and API tests, from `backend`:
+
 ```text
 mvn test
 mvn verify
 ```
 
-From `frontend`:
+Frontend tests, from `frontend`:
 
 ```text
 npm test
 ```
 
-`mvn test` covers create, read, search, update, delete, validation errors, duplicate ISBN, missing books, and documentation sync.
+Selenium end-to-end tests use JUnit 5, Cucumber, and Chrome in headless mode. Start the API and the UI first, then from `tests`:
+
+```text
+mvn test
+```
+
+Or, from the repository root:
+
+```text
+powershell -File build/run-e2e.ps1
+```
+
+The HTML report is written to `build/reports/selenium-test-report.html`. Use `-Dbrowser=edge` or `-Dheadless=false` to change the browser. The scenarios expect the dev sample books at http://localhost:5173/.
 
 ## Scope
 
