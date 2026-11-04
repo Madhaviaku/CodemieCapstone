@@ -7,10 +7,18 @@ import java.nio.file.Path;
 public class ApiDocumentationGenerator {
 
     public static void main(String[] args) throws Exception {
-        Path docsPath = Path.of("docs", "api.md");
+        Path docsPath = apiDocsPath();
         Files.createDirectories(docsPath.getParent());
         Files.writeString(docsPath, generateMarkdown(), StandardCharsets.UTF_8);
         System.out.println("Generated API documentation at " + docsPath.toAbsolutePath());
+    }
+
+    public static Path apiDocsPath() {
+        Path repositoryDocs = Path.of("..", "docs");
+        if (Files.isDirectory(repositoryDocs)) {
+            return repositoryDocs.resolve("api.md");
+        }
+        return Path.of("docs", "api.md");
     }
 
     public static String generateMarkdown() {

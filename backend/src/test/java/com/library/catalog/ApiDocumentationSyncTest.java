@@ -12,7 +12,7 @@ class ApiDocumentationSyncTest {
     @Test
     void committedDocumentationMatchesGenerator() throws Exception {
         String expected = ApiDocumentationGenerator.generateMarkdown();
-        String actual = Files.readString(Path.of("docs", "api.md")).replace("\r\n", "\n");
+        String actual = Files.readString(ApiDocumentationGenerator.apiDocsPath()).replace("\r\n", "\n");
         assertEquals(expected, actual);
     }
 }
