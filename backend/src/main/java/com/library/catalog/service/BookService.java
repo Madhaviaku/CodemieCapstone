@@ -102,12 +102,18 @@ public class BookService {
     }
 
     @Transactional
-    public void deleteBook(String isbn) {
+    public boolean deleteBook(String isbn) {
         String normalizedIsbn = normalizeIsbn(isbn);
-        Book existing = repository.findByIsbn(normalizedIsbn)
-                .orElseThrow(() -> new BookNotFoundException(normalizedIsbn));
-        repository.delete(existing);
-        log.info("Deleted book isbn={}", normalizedIsbn);
+        return repository.findByIsbn(normalizedIsbn)
+                .map(book -> {
+                    repository.delete(book);
+                    log.info("Deleted book isbn={}", normalizedIsbn);
+                    return true;
+                })
+                .orElseGet(() -> {
+                    log.info("Delete book no-op (not found) isbn={}", normalizedIsbn);
+                    return false;
+                });
     }
 
     public BookPageResponse searchBooks(String title, int page, int size) {

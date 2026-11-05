@@ -67,8 +67,12 @@ public class BookController {
     }
 
     @DeleteMapping("/books/{isbn}")
-    public ResponseEntity<Void> deleteBook(@PathVariable String isbn) {
-        bookService.deleteBook(isbn);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponse<Void>> deleteBook(@PathVariable String isbn) {
+        boolean deleted = bookService.deleteBook(isbn);
+        if (deleted) {
+            return ResponseEntity.ok(ApiResponse.success(200, "Book deleted successfully", null));
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(404, "Book was already removed or does not exist.", null));
     }
 }
