@@ -122,6 +122,33 @@ public class BookService {
         return BookPageResponse.from(books);
     }
 
+    public BookPageResponse searchBooks(String q, String genre, Integer yearMin, Integer yearMax, int page, int size) {
+        validateYearRange(yearMin, yearMax);
+        String keyword = q == null ? null : q.trim();
+
+        Page<BookResponse> books = repository
+                .search(keyword, genre, yearMin, yearMax, pageable(page, size))
+                .map(this::toResponse);
+
+        log.info(
+                "Unified search q='{}' genre='{}' yearMin={} yearMax={} page={} size={} total={}",
+                keyword,
+                genre,
+                yearMin,
+                yearMax,
+                page,
+                size,
+                books.getTotalElements()
+        );
+        return BookPageResponse.from(books);
+    }
+
+    public void validateYearRange(Integer yearMin, Integer yearMax) {
+        if (yearMin != null && yearMax != null && yearMin > yearMax) {
+            throw new IllegalArgumentException("Min year cannot be greater than max year");
+        }
+    }
+
     public String normalizeIsbn(String isbn) {
         if (isbn == null || isbn.isBlank()) {
             throw new IllegalArgumentException("ISBN is required");

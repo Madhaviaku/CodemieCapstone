@@ -32,7 +32,19 @@ public class BookController {
     @GetMapping("/books")
     public ResponseEntity<ApiResponse<BookPageResponse>> getBooks(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String genre,
+            @RequestParam(required = false) Integer yearMin,
+            @RequestParam(required = false) Integer yearMax) {
+
+        if (q != null || genre != null || yearMin != null || yearMax != null) {
+            return ResponseEntity.ok(ApiResponse.success(
+                    200,
+                    "Search completed successfully",
+                    bookService.searchBooks(q, genre, yearMin, yearMax, page, size)));
+        }
+
         return ResponseEntity.ok(ApiResponse.success(200, "Books retrieved successfully", bookService.getBooks(page, size)));
     }
 
