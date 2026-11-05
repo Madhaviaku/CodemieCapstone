@@ -12,7 +12,7 @@ export function searchBooks(title: string, page: number): Promise<BookPage> {
 }
 
 export async function createBook(values: BookFormValues): Promise<ApiEnvelope<Book>> {
-  const response = await api.post<ApiEnvelope<Book>>('/api/books', {
+  const response = await api.post<ApiEnvelope<Book>>(/api/books', {
     isbn: values.isbn.trim(),
     title: values.title.trim(),
     author: values.author.trim(),
@@ -25,7 +25,7 @@ export async function createBook(values: BookFormValues): Promise<ApiEnvelope<Bo
 }
 
 export async function updateBook(isbn: string, values: BookFormValues): Promise<ApiEnvelope<Book>> {
-  const response = await api.put<ApiEnvelope<Book>>(`/api/books/${encodeURIComponent(isbn)}`, {
+  const response = await api.put<ApiEnvelope<Book>>(`/{url}`, {
     title: values.title.trim(),
     author: values.author.trim(),
     publisher: values.publisher.trim(),
@@ -37,7 +37,11 @@ export async function updateBook(isbn: string, values: BookFormValues): Promise<
 }
 
 export async function deleteBook(isbn: string): Promise<void> {
-  await api.delete(`/api/books/${encodeURIComponent(isbn)}`)
+  await api.delete(`/{url}`)
+}
+
+export async function restoreBook(isbn: string): Promise<void> {
+  await api.post(`/api/books/${encodeURIComponent(isbn)}/restore`)
 }
 
 async function getPage(url: string, params: Record<string, string | number>): Promise<BookPage> {
