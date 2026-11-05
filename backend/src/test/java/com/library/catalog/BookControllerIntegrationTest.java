@@ -108,11 +108,21 @@ class BookControllerIntegrationTest {
         assertNotEquals(createdAt, objectMapper.readTree(updatedBody).get("data").get("updatedAt").asText());
 
         mockMvc.perform(delete("/api/books/9780201633610"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("Book deleted successfully"));
 
         mockMvc.perform(get("/api/books/9780201633610"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Book with ISBN 9780201633610 not found"));
+    }
+
+    @Test
+    void deleteMissingBookReturnsUserFriendlyMessage() throws Exception {
+        mockMvc.perform(delete("/api/books/0000000000"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("Book was already removed or does not exist."));
     }
 
     @Test
