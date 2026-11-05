@@ -11,6 +11,39 @@ export function searchBooks(title: string, page: number): Promise<BookPage> {
   return getPage('/api/books/search', { title, page, size: PAGE_SIZE })
 }
 
+export interface CatalogQuery {
+  q?: string
+  genre?: string
+  page?: number
+  pageSize?: number
+}
+
+export interface CatalogPage {
+  items: Book[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export async function getCatalog(query: CatalogQuery): Promise<CatalogPage> {
+  const params: Record<string, string | number> = {
+    page: query.page ?? 1,
+    pageSize: query.pageSize ?? PAGE_SIZE,
+  }
+  if (query.q && query.q.trim()) {
+    params.q = query.q.trim()
+  }
+  if (query.genre && query.genre.trim() && query.genre !== 'All') {
+    params.genre = query.genre.trim()
+  }
+
+  const response = await api.get<ApiEnvelope<CatalogPage>>('/api/catalog', { params })
+  if (!response.data.data) {
+    throw new Error(response.data.message)
+  }
+  return response.data.data
+}
+
 export async function createBook(values: BookFormValues): Promise<ApiEnvelope<Book>> {
   const response = await api.post<ApiEnvelope<Book>>('/api/books', {
     isbn: values.isbn.trim(),

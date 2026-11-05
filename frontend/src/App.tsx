@@ -1,23 +1,38 @@
-import { useCallback, useEffect, useState } from 'react'
-import { deleteBook, listBooks, searchBooks } from './api/booksApi.ts'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { deleteBook, getCatalog } from './api/booksApi.ts'
 import { toApiError } from './api/client.ts'
 import { BookDetailDialog } from './components/BookDetailDialog.tsx'
 import { BookFormDialog } from './components/BookFormDialog.tsx'
 import { BookTable } from './components/BookTable.tsx'
 import { Modal } from './components/Modal.tsx'
 import { Pagination } from './components/Pagination.tsx'
-import { bookToForm, emptyBookForm, type Book, type BookPage } from './types.ts'
+import { bookToForm, emptyBookForm, type Book } from './types.ts'
 
 interface Banner {
   tone: 'success' | 'error'
   text: string
 }
 
+const PAGE_SIZE = 10
+
+function catalogToBookPage(result: { items: Book[]; totalCount: number; page: number; pageSize: number }) {
+  const totalPages = Math.ceil(result.totalCount / result.pageSize)
+  return {
+    content: result.items,
+    totalElements: result.totalCount,
+    totalPages,
+    currentPage: result.page - 1,
+    pageSize: result.pageSize,
+  }
+}
+
 export default function App() {
   const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
   const [activeQuery, setActiveQuery] = useState('')
-  const [books, setBooks] = useState<BookPage | null>(null)
+  const [genre, setGenre] = useState('All')
+  const [activeGenre, setActiveGenre] = useState('All')
+  const [books, setBooks] = useState<ReturnType<typeof catalogToBookPage> | null>(null)
   const [loading, setLoading] = useState(true)
   const [banner, setBanner] = useState<Banner | null>(null)
   const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null)
@@ -26,22 +41,51 @@ export default function App() {
   const [pendingDelete, setPendingDelete] = useState<Book | null>(null)
   const [deleting, setDeleting] = useState(false)
 
+  const debounceRef = useRef<number | null>(null)
+
+  const genres = useMemo(() => {
+    const set = new Set<string>()
+    for (const book of books?.content ?? []) {
+      if (book.genre) {
+        set.add(book.genre)
+      }
+    }
+    return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b))]
+  }, [books])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const result = activeQuery ? await searchBooks(activeQuery, page) : await listBooks(page)
-      setBooks(result)
+      const result = await getCatalog({ q: activeQuery, genre: activeGenre, page: page + 1, pageSize: PAGE_SIZE })
+      setBooks(catalogToBookPage(result))
     } catch (error) {
-      setBooks({ content: [], totalElements: 0, totalPages: 0, currentPage: page, pageSize: 10 })
+      setBooks({ content: [], totalElements: 0, totalPages: 0, currentPage: page, pageSize: PAGE_SIZE })
       setBanner({ tone: 'error', text: toApiError(error).message })
     } finally {
       setLoading(false)
     }
-  }, [activeQuery, page])
+  }, [activeQuery, activeGenre, page])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      window.clearTimeout(debounceRef.current)
+    }
+    debounceRef.current = window.setTimeout(() => {
+      setPage(0)
+      setActiveQuery(query.trim())
+      setActiveGenre(genre)
+    }, 250)
+
+    return () => {
+      if (debounceRef.current) {
+        window.clearTimeout(debounceRef.current)
+      }
+    }
+  }, [query, genre])
 
   function openCreate() {
     setEditing(null)
@@ -76,9 +120,9 @@ export default function App() {
     }
   }
 
-  const emptyMessage = activeQuery
-    ? `No books match “${activeQuery}”.`
-    : 'The shelf is empty. Add the first book.'
+  const showClear = Boolean(activeQuery || activeGenre !== 'All')
+
+  const emptyMessage = 'No books found'
 
   return (
     <div className="min-h-screen">
@@ -95,40 +139,48 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">
-        <form
-          className="mb-4 flex flex-wrap gap-2"
-          onSubmit={(event) => {
-            event.preventDefault()
-            setPage(0)
-            setActiveQuery(query.trim())
-          }}
-        >
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <label className="min-w-[240px] flex-1">
-            <span className="sr-only">Search by title</span>
+            <span className="sr-only">Search by title, author, or ISBN</span>
             <input
               className="w-full rounded-xl border border-line bg-card px-4 py-3 outline-none focus:border-brass"
-              placeholder="Search by title"
+              placeholder="Search by title, author, or ISBN"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-          <button type="submit" className="rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white">
-            Search
-          </button>
-          {activeQuery && (
+
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <span className="text-muted">Genre</span>
+            <select
+              className="rounded-xl border border-line bg-card px-3 py-3 text-sm outline-none focus:border-brass"
+              value={genre}
+              onChange={(event) => setGenre(event.target.value)}
+            >
+              {genres.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {showClear && (
             <button
               type="button"
               className="rounded-full border border-line px-4 py-2 text-sm font-semibold"
               onClick={() => {
                 setQuery('')
-                setActiveQuery('')
+                setGenre('All')
                 setPage(0)
+                setActiveQuery('')
+                setActiveGenre('All')
               }}
             >
-              Clear
+              Clear/Reset
             </button>
           )}
-        </form>
+        </div>
 
         {banner && (
           <p
@@ -148,7 +200,7 @@ export default function App() {
             onEdit={openEdit}
             onDelete={setPendingDelete}
           />
-          {books && !loading && (
+          {books && !loading && books.totalElements > 0 && (
             <Pagination page={books.currentPage} totalPages={books.totalPages} totalElements={books.totalElements} onPage={setPage} />
           )}
         </section>
@@ -175,6 +227,7 @@ export default function App() {
           <p>
             Remove “{pendingDelete.title}” from the catalog? This cannot be undone.
           </p>
+          <p className="mt-2 text-sm text-muted">ISBN: {pendingDelete.isbn}</p>
           <div className="mt-6 flex justify-end gap-3">
             <button type="button" className="rounded-full px-4 py-2 text-sm font-semibold text-muted" onClick={() => setPendingDelete(null)}>
               Cancel
