@@ -37,6 +37,53 @@ public class BookService {
         return BookPageResponse.from(books);
     }
 
+    public BookPageResponse searchCatalog(String q, String genre, Integer yearFrom, Integer yearTo, int page, int size) {
+        validateYearRange(yearFrom, yearTo);
+
+        LocalDate from = yearFrom == null ? null : LocalDate.of(yearFrom, 1, 1);
+        LocalDate to = yearTo == null ? null : LocalDate.of(yearTo, 12, 31);
+
+        Page<BookResponse> books = repository.search(
+                        q == null ? null : q.trim(),
+                        genre == null ? null : genre.trim(),
+                        from,
+                        to,
+                        pageable(page, size))
+                .map(this::toResponse);
+
+        log.info(
+                "Catalog search q='{}' genre='{}' yearFrom={} yearTo={} page={} size={} total={}",
+                q,
+                genre,
+                yearFrom,
+                yearTo,
+                page,
+                size,
+                books.getTotalElements());
+
+        return BookPageResponse.from(books);
+    }
+
+    private void validateYearRange(Integer yearFrom, Integer yearTo) {
+        if (yearFrom == null && yearTo == null) {
+            return;
+        }
+
+        int currentYear = LocalDate.now().getYear();
+        int minYear = 1450;
+        int maxYear = currentYear + 1;
+
+        if (yearFrom != null && (yearFrom < minYear || yearFrom > maxYear)) {
+            throw new IllegalArgumentException("yearFrom must be between " + minYear + " and " + maxYear);
+        }
+        if (yearTo != null && (yearTo < minYear || yearTo > maxYear)) {
+            throw new IllegalArgumentException("yearTo must be between " + minYear + " and " + maxYear);
+        }
+        if (yearFrom != null && yearTo != null && yearFrom > yearTo) {
+            throw new IllegalArgumentException("yearFrom must be less than or equal to yearTo");
+        }
+    }
+
     public BookResponse getBookByIsbn(String isbn) {
         String normalizedIsbn = normalizeIsbn(isbn);
         Book book = repository.findByIsbn(normalizedIsbn)
