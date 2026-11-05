@@ -6,24 +6,28 @@ export const api = axios.create({
 })
 
 export class ApiError extends Error {
+  status?: number
   errors?: Record<string, string>
 
-  constructor(message: string, errors?: Record<string, string>) {
+  constructor(message: string, status?: number, errors?: Record<string, string>) {
     super(message)
     this.name = 'ApiError'
+    this.status = status
     this.errors = errors
   }
 }
 
 export function toApiError(error: unknown): ApiError {
   if (axios.isAxiosError<ApiEnvelope<unknown>>(error)) {
+    const status = error.response?.status
     const data = error.response?.data
     if (data?.message) {
-      return new ApiError(data.message, data.errors)
+      return new ApiError(data.message, status, data.errors)
     }
     if (!error.response) {
       return new ApiError('The catalog service is unavailable. Start the backend on port 8080.')
     }
+    return new ApiError('Request failed. Please try again.', status)
   }
   return new ApiError('Something went wrong. Please try again.')
 }
