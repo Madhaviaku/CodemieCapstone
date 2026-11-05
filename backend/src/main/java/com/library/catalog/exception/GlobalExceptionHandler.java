@@ -42,6 +42,12 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(409, "ISBN already exists in catalog", null));
     }
 
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleQueryValidation(ValidationException ex) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(400, "Validation failed", ex.getFieldErrors()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new LinkedHashMap<>();
