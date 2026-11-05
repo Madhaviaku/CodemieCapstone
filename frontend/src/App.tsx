@@ -9,7 +9,7 @@ import { Pagination } from './components/Pagination.tsx'
 import { bookToForm, emptyBookForm, type Book, type BookPage } from './types.ts'
 
 interface Banner {
-  tone: 'success' | 'error'
+  tone: 'success' | 'error' | 'info'
   text: string
 }
 
@@ -70,7 +70,13 @@ export default function App() {
         await load()
       }
     } catch (error) {
-      setBanner({ tone: 'error', text: toApiError(error).message })
+      const apiError = toApiError(error)
+      const info = apiError.status === 404
+      setBanner({ tone: info ? 'info' : 'error', text: apiError.message })
+      if (info) {
+        setPendingDelete(null)
+        await load()
+      }
     } finally {
       setDeleting(false)
     }
@@ -133,7 +139,13 @@ export default function App() {
         {banner && (
           <p
             role="status"
-            className={`mb-4 rounded-xl px-4 py-3 text-sm ${banner.tone === 'error' ? 'bg-danger-soft text-danger' : 'bg-moss text-pine'}`}
+            className={`mb-4 rounded-xl px-4 py-3 text-sm ${
+              banner.tone === 'error'
+                ? 'bg-danger-soft text-danger'
+                : banner.tone === 'info'
+                  ? 'bg-paper text-ink'
+                  : 'bg-moss text-pine'
+            }`}
           >
             {banner.text}
           </p>
@@ -171,10 +183,18 @@ export default function App() {
       {detail && <BookDetailDialog book={detail} onClose={() => setDetail(null)} onEdit={openEdit} />}
 
       {pendingDelete && (
-        <Modal title="Remove book" onClose={() => setPendingDelete(null)}>
-          <p>
-            Remove “{pendingDelete.title}” from the catalog? This cannot be undone.
-          </p>
+        <Modal title="Confirm delete" onClose={() => setPendingDelete(null)}>
+          <p className="text-sm text-muted">This action cannot be undone.</p>
+          <dl className="mt-4 grid gap-2">
+            <div className="flex flex-wrap gap-2">
+              <dt className="w-20 text-sm font-semibold text-ink">Title</dt>
+              <dd className="text-sm text-ink">{pendingDelete.title}</dd>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <dt className="w-20 text-sm font-semibold text-ink">ISBN</dt>
+              <dd className="text-sm text-ink">{pendingDelete.isbn}</dd>
+            </div>
+          </dl>
           <div className="mt-6 flex justify-end gap-3">
             <button type="button" className="rounded-full px-4 py-2 text-sm font-semibold text-muted" onClick={() => setPendingDelete(null)}>
               Cancel
@@ -185,7 +205,7 @@ export default function App() {
               onClick={() => void confirmDelete()}
               disabled={deleting}
             >
-              {deleting ? 'Removing…' : 'Remove book'}
+              {deleting ? 'Deleting…' : 'Confirm Delete'}
             </button>
           </div>
         </Modal>
