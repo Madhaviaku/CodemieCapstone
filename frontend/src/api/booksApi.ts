@@ -3,12 +3,36 @@ import { api } from './client.ts'
 
 const PAGE_SIZE = 10
 
+export interface BookSearchFilters {
+  q?: string
+  genre?: string
+  yearMin?: number
+  yearMax?: number
+}
+
 export function listBooks(page: number): Promise<BookPage> {
   return getPage('/api/books', { page, size: PAGE_SIZE })
 }
 
 export function searchBooks(title: string, page: number): Promise<BookPage> {
   return getPage('/api/books/search', { title, page, size: PAGE_SIZE })
+}
+
+export function searchBooksFiltered(filters: BookSearchFilters, page: number): Promise<BookPage> {
+  const params: Record<string, string | number> = { page, size: PAGE_SIZE }
+  if (filters.q?.trim()) {
+    params.q = filters.q.trim()
+  }
+  if (filters.genre?.trim()) {
+    params.genre = filters.genre.trim()
+  }
+  if (typeof filters.yearMin === 'number') {
+    params.yearMin = filters.yearMin
+  }
+  if (typeof filters.yearMax === 'number') {
+    params.yearMax = filters.yearMax
+  }
+  return getPage('/api/books', params)
 }
 
 export async function createBook(values: BookFormValues): Promise<ApiEnvelope<Book>> {

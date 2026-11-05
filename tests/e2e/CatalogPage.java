@@ -35,7 +35,7 @@ public class CatalogPage {
     }
 
     public void search(String title) {
-        WebElement input = driver.findElement(By.cssSelector("input[placeholder='Search by title']"));
+        WebElement input = driver.findElement(By.cssSelector("input[placeholder='Search by title, author, or ISBN']"));
         input.clear();
         input.sendKeys(title);
         driver.findElement(By.xpath("//button[normalize-space()='Search']")).click();

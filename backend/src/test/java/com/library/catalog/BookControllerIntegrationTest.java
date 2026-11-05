@@ -176,6 +176,35 @@ class BookControllerIntegrationTest {
     }
 
     @Test
+    void filteredCatalogMatchesAuthorGenreAndYear() throws Exception {
+        createBook("9780306406157", "Filtered Harbor", "Ada Filter", "Cartography", LocalDate.of(2005, 6, 1));
+        createBook("9780137081073", "Later Harbor", "Ada Filter", "Cartography", LocalDate.of(2018, 1, 1));
+        createBook("9780743273565", "The Great Gatsby", "F. Scott Fitzgerald", "Fiction", LocalDate.of(1925, 4, 10));
+
+        mockMvc.perform(get("/api/books").param("q", "ada").param("genre", "cartography").param("yearMin", "2000").param("yearMax", "2010"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Search completed successfully"))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].title").value("Filtered Harbor"));
+
+        mockMvc.perform(get("/api/books").param("q", "978-0-306-40615-7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].title").value("Filtered Harbor"));
+
+        mockMvc.perform(get("/api/books").param("yearMin", "2010").param("yearMax", "2000"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Min year cannot be greater than max year"));
+    }
+
+    private void createBook(String isbn, String title, String author, String genre, LocalDate published) throws Exception {
+        BookCreateRequest request = new BookCreateRequest(isbn, title, author, "Publisher", published, genre, 1);
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void searchWithoutTitleIsRejected() throws Exception {
         mockMvc.perform(get("/api/books/search"))
                 .andExpect(status().isBadRequest())

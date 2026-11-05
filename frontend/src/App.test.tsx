@@ -21,6 +21,7 @@ vi.mock('./api/booksApi.ts', () => ({
     pageSize: 10,
   }),
   searchBooks: vi.fn(),
+  searchBooksFiltered: vi.fn(),
   createBook: vi.fn(),
   updateBook: vi.fn(),
   deleteBook: vi.fn(),

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { deleteBook, listBooks, searchBooks } from './api/booksApi.ts'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { deleteBook, listBooks, searchBooksFiltered, type BookSearchFilters } from './api/booksApi.ts'
 import { toApiError } from './api/client.ts'
 import { BookDetailDialog } from './components/BookDetailDialog.tsx'
 import { BookFormDialog } from './components/BookFormDialog.tsx'
@@ -13,10 +13,47 @@ interface Banner {
   text: string
 }
 
+interface CatalogFilters {
+  q: string
+  genre: string
+  yearMin: string
+  yearMax: string
+}
+
+const emptyFilters: CatalogFilters = { q: '', genre: '', yearMin: '', yearMax: '' }
+
+function toSearchFilters(filters: CatalogFilters): BookSearchFilters {
+  const yearMin = filters.yearMin.trim() ? Number(filters.yearMin) : undefined
+  const yearMax = filters.yearMax.trim() ? Number(filters.yearMax) : undefined
+  return {
+    q: filters.q.trim() || undefined,
+    genre: filters.genre.trim() || undefined,
+    yearMin: Number.isFinite(yearMin) ? yearMin : undefined,
+    yearMax: Number.isFinite(yearMax) ? yearMax : undefined,
+  }
+}
+
+function filtersAreActive(filters: CatalogFilters) {
+  return Boolean(filters.q.trim() || filters.genre.trim() || filters.yearMin.trim() || filters.yearMax.trim())
+}
+
+function yearRangeError(filters: CatalogFilters) {
+  if (!filters.yearMin.trim() || !filters.yearMax.trim()) {
+    return null
+  }
+  const min = Number(filters.yearMin)
+  const max = Number(filters.yearMax)
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return null
+  }
+  return min > max ? 'Min year cannot be greater than max year' : null
+}
+
 export default function App() {
   const [page, setPage] = useState(0)
-  const [query, setQuery] = useState('')
-  const [activeQuery, setActiveQuery] = useState('')
+  const [filters, setFilters] = useState<CatalogFilters>(emptyFilters)
+  const [activeFilters, setActiveFilters] = useState<CatalogFilters>(emptyFilters)
+  const yearError = useMemo(() => yearRangeError(filters), [filters])
   const [books, setBooks] = useState<BookPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [banner, setBanner] = useState<Banner | null>(null)
@@ -29,7 +66,9 @@ export default function App() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const result = activeQuery ? await searchBooks(activeQuery, page) : await listBooks(page)
+      const result = filtersAreActive(activeFilters)
+        ? await searchBooksFiltered(toSearchFilters(activeFilters), page)
+        : await listBooks(page)
       setBooks(result)
     } catch (error) {
       setBooks({ content: [], totalElements: 0, totalPages: 0, currentPage: page, pageSize: 10 })
@@ -37,7 +76,7 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [activeQuery, page])
+  }, [activeFilters, page])
 
   useEffect(() => {
     void load()
@@ -76,8 +115,9 @@ export default function App() {
     }
   }
 
-  const emptyMessage = activeQuery
-    ? `No books match “${activeQuery}”.`
+  const filtersApplied = filtersAreActive(activeFilters)
+  const emptyMessage = filtersApplied
+    ? 'No books found. Try clearing filters or adjusting your search.'
     : 'The shelf is empty. Add the first book.'
 
   return (
@@ -99,34 +139,73 @@ export default function App() {
           className="mb-4 flex flex-wrap gap-2"
           onSubmit={(event) => {
             event.preventDefault()
+            if (yearError) {
+              return
+            }
             setPage(0)
-            setActiveQuery(query.trim())
+            setActiveFilters({ ...filters })
           }}
         >
           <label className="min-w-[240px] flex-1">
-            <span className="sr-only">Search by title</span>
+            <span className="sr-only">Search by title, author, or ISBN</span>
             <input
               className="w-full rounded-xl border border-line bg-card px-4 py-3 outline-none focus:border-brass"
-              placeholder="Search by title"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by title, author, or ISBN"
+              value={filters.q}
+              onChange={(event) => setFilters((current) => ({ ...current, q: event.target.value }))}
             />
           </label>
-          <button type="submit" className="rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white">
+          <label className="min-w-[140px]">
+            <span className="sr-only">Genre</span>
+            <input
+              className="w-full rounded-xl border border-line bg-card px-4 py-3 outline-none focus:border-brass"
+              placeholder="Genre"
+              value={filters.genre}
+              onChange={(event) => setFilters((current) => ({ ...current, genre: event.target.value }))}
+            />
+          </label>
+          <label className="w-[110px]">
+            <span className="sr-only">Min year</span>
+            <input
+              className="w-full rounded-xl border border-line bg-card px-4 py-3 outline-none focus:border-brass"
+              placeholder="Year min"
+              inputMode="numeric"
+              value={filters.yearMin}
+              onChange={(event) => setFilters((current) => ({ ...current, yearMin: event.target.value }))}
+              aria-invalid={yearError ? true : undefined}
+            />
+          </label>
+          <label className="w-[110px]">
+            <span className="sr-only">Max year</span>
+            <input
+              className="w-full rounded-xl border border-line bg-card px-4 py-3 outline-none focus:border-brass"
+              placeholder="Year max"
+              inputMode="numeric"
+              value={filters.yearMax}
+              onChange={(event) => setFilters((current) => ({ ...current, yearMax: event.target.value }))}
+              aria-invalid={yearError ? true : undefined}
+            />
+          </label>
+          <button type="submit" className="rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={Boolean(yearError)}>
             Search
           </button>
-          {activeQuery && (
+          {(filtersAreActive(filters) || filtersApplied) && (
             <button
               type="button"
               className="rounded-full border border-line px-4 py-2 text-sm font-semibold"
               onClick={() => {
-                setQuery('')
-                setActiveQuery('')
+                setFilters(emptyFilters)
+                setActiveFilters(emptyFilters)
                 setPage(0)
               }}
             >
               Clear
             </button>
+          )}
+          {yearError && (
+            <p className="basis-full text-sm text-danger" role="alert">
+              {yearError}
+            </p>
           )}
         </form>
 

@@ -39,11 +39,15 @@ public class ApiDocumentationGenerator {
 
                 ### GET /api/books
 
-                - Description: Retrieve all books with pagination support
+                - Description: Retrieve all books with pagination support. When `q`, `genre`, `yearMin`, or `yearMax` is present, the same endpoint filters the catalog instead of returning every book.
                 - Query parameters:
+                  - `q` (optional) case-insensitive match against title, author, or ISBN. Hyphens in an ISBN are ignored.
+                  - `genre` (optional) exact genre, case-insensitive
+                  - `yearMin` (optional) earliest publication year, inclusive
+                  - `yearMax` (optional) latest publication year, inclusive
                   - `page` (optional, default `0`)
                   - `size` (optional, default `20`, maximum `100`)
-                - Response: `200 OK`
+                - Response: `200 OK`. The message is `Books retrieved successfully` for an unfiltered list and `Search completed successfully` when a filter is present.
 
                 ```json
                 {
@@ -60,10 +64,11 @@ public class ApiDocumentationGenerator {
                 }
                 ```
 
-                - Errors: `400` when page or size is invalid, `500` for unexpected failures
+                - Errors: `400` when page, size, or the year range is invalid, `500` for unexpected failures
 
                 ```text
                 curl "http://localhost:8080/api/books?page=0&size=20"
+                curl "http://localhost:8080/api/books?q=Java&genre=Programming&yearMin=2000&yearMax=2020&page=0&size=20"
                 ```
 
                 ### GET /api/books/{isbn}
