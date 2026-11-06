@@ -18,9 +18,10 @@ interface CatalogFilters {
   genre: string
   yearMin: string
   yearMax: string
+  inStock: boolean
 }
 
-const emptyFilters: CatalogFilters = { q: '', genre: '', yearMin: '', yearMax: '' }
+const emptyFilters: CatalogFilters = { q: '', genre: '', yearMin: '', yearMax: '', inStock: false }
 
 function toSearchFilters(filters: CatalogFilters): BookSearchFilters {
   const yearMin = filters.yearMin.trim() ? Number(filters.yearMin) : undefined
@@ -30,11 +31,12 @@ function toSearchFilters(filters: CatalogFilters): BookSearchFilters {
     genre: filters.genre.trim() || undefined,
     yearMin: Number.isFinite(yearMin) ? yearMin : undefined,
     yearMax: Number.isFinite(yearMax) ? yearMax : undefined,
+    inStock: filters.inStock || undefined,
   }
 }
 
 function filtersAreActive(filters: CatalogFilters) {
-  return Boolean(filters.q.trim() || filters.genre.trim() || filters.yearMin.trim() || filters.yearMax.trim())
+  return Boolean(filters.q.trim() || filters.genre.trim() || filters.yearMin.trim() || filters.yearMax.trim() || filters.inStock)
 }
 
 function yearRangeError(filters: CatalogFilters) {
@@ -185,6 +187,15 @@ export default function App() {
               onChange={(event) => setFilters((current) => ({ ...current, yearMax: event.target.value }))}
               aria-invalid={yearError ? true : undefined}
             />
+          </label>
+          <label className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filters.inStock}
+              onChange={(event) => setFilters((current) => ({ ...current, inStock: event.target.checked }))}
+              className="h-4 w-4 cursor-pointer"
+            />
+            <span className="text-sm font-medium">In stock</span>
           </label>
           <button type="submit" className="rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={Boolean(yearError)}>
             Search

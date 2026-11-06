@@ -8,6 +8,7 @@ export interface BookSearchFilters {
   genre?: string
   yearMin?: number
   yearMax?: number
+  inStock?: boolean
 }
 
 export function listBooks(page: number): Promise<BookPage> {
@@ -19,7 +20,7 @@ export function searchBooks(title: string, page: number): Promise<BookPage> {
 }
 
 export function searchBooksFiltered(filters: BookSearchFilters, page: number): Promise<BookPage> {
-  const params: Record<string, string | number> = { page, size: PAGE_SIZE }
+  const params: Record<string, string | number | boolean> = { page, size: PAGE_SIZE }
   if (filters.q?.trim()) {
     params.q = filters.q.trim()
   }
@@ -31,6 +32,9 @@ export function searchBooksFiltered(filters: BookSearchFilters, page: number): P
   }
   if (typeof filters.yearMax === 'number') {
     params.yearMax = filters.yearMax
+  }
+  if (filters.inStock === true) {
+    params.inStock = true
   }
   return getPage('/api/books', params)
 }
@@ -64,7 +68,7 @@ export async function deleteBook(isbn: string): Promise<void> {
   await api.delete(`/api/books/${encodeURIComponent(isbn)}`)
 }
 
-async function getPage(url: string, params: Record<string, string | number>): Promise<BookPage> {
+async function getPage(url: string, params: Record<string, string | number | boolean>): Promise<BookPage> {
   const response = await api.get<ApiEnvelope<BookPage>>(url, { params })
   if (!response.data.data) {
     throw new Error(response.data.message)
