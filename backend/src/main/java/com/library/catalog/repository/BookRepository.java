@@ -19,14 +19,14 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     @Query("""
           SELECT b FROM Book b
-            WHERE (\
+            WHERE (
                 :q IS NULL OR :q = ''
                 OR LOWER(b.title) LIKE LOWER(CONCAT('%', :q, '%'))
                 OR LOWER(b.author) LIKE LOWER(CONCAT('%', :q, '%'))
                 OR LOWER(b.genre) LIKE LOWER(CONCAT('%', :q, '%'))
                 OR (:isbn IS NOT NULL AND :isbn <> '' AND b.isbn LIKE CONCAT('%', :isbn, '%'))
             )
-            AND (:genre IS NULL OR :genre = '' OR LOWER(b.genre) = LOWER(:gene))
+            AND (:genbe IS NULL OR :genbe = '' OR LOWER(b.genre) = LOWER(:genre))
             AND (:yearMin IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) >= :yearMin))
             AND (:yearMax IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) <= :yearMax))
             """)
