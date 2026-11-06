@@ -122,7 +122,7 @@ public class BookService {
         return BookPageResponse.from(books);
     }
 
-    public BookPageResponse searchBooks(String q, String genre, Integer yearMin, Integer yearMax, int page, int size) {
+    public BookPageResponse searchBooks(String q, String genre, Integer yearMin, Integer yearMax, Boolean inStock, int page, int size) {
         if (yearMin != null && yearMax != null && yearMin > yearMax) {
             throw new IllegalArgumentException("Min year cannot be greater than max year");
         }
@@ -130,11 +130,11 @@ public class BookService {
         String isbn = keyword == null ? null : keyword.replace("-", "").replace(" ", "");
         String genreFilter = blankToNull(genre);
         Page<BookResponse> books = repository
-                .search(keyword, isbn, genreFilter, yearMin, yearMax, pageable(page, size))
+                .search(keyword, isbn, genreFilter, yearMin, yearMax, inStock, pageable(page, size))
                 .map(this::toResponse);
         log.info(
-                "Filtered catalog q='{}' genre='{}' yearMin={} yearMax={} page={} size={} total={}",
-                keyword, genreFilter, yearMin, yearMax, page, size, books.getTotalElements());
+                "Filtered catalog q='{}' genre='{}' yearMin={} yearMax={} inStock={} page={} size={} total={}",
+                keyword, genreFilter, yearMin, yearMax, inStock, page, size, books.getTotalElements());
         return BookPageResponse.from(books);
     }
 

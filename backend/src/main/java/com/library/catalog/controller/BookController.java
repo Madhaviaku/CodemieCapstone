@@ -35,13 +35,14 @@ public class BookController {
             @RequestParam(required = false) String genre,
             @RequestParam(required = false) Integer yearMin,
             @RequestParam(required = false) Integer yearMax,
+            @RequestParam(required = false) Boolean inStock,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        if (hasText(q) || hasText(genre) || yearMin != null || yearMax != null) {
+        if (hasText(q) || hasText(genre) || yearMin != null || yearMax != null || inStock != null) {
             return ResponseEntity.ok(ApiResponse.success(
                     200,
                     "Search completed successfully",
-                    bookService.searchBooks(q, genre, yearMin, yearMax, page, size)));
+                    bookService.searchBooks(q, genre, yearMin, yearMax, inStock, page, size)));
         }
         return ResponseEntity.ok(ApiResponse.success(200, "Books retrieved successfully", bookService.getBooks(page, size)));
     }

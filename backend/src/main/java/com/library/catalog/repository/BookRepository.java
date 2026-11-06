@@ -28,6 +28,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             AND (:genre IS NULL OR :genre = '' OR LOWER(b.genre) = LOWER(:genre))
             AND (:yearMin IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) >= :yearMin))
             AND (:yearMax IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) <= :yearMax))
+            AND (:inStock IS NULL OR :inStock = false OR b.quantityAvailable > 0)
             """)
     Page<Book> search(
             @Param("q") String q,
@@ -35,5 +36,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             @Param("genre") String genre,
             @Param("yearMin") Integer yearMin,
             @Param("yearMax") Integer yearMax,
+            @Param("inStock") Boolean inStock,
             Pageable pageable);
 }
