@@ -18,7 +18,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_books_isbn", columnList = "isbn"),
         @Index(name = "idx_books_title", columnList = "title"),
         @Index(name = "idx_books_author", columnList = "author"),
-        @Index(name = "idx_books_genre", columnList = "genre")
+        @Index(name = "idx_books_genre", columnList = "genre"),
+        @Index(name = "idx_books_is_deleted", columnList = "is_deleted")
 })
 public class Book {
 
@@ -32,13 +33,13 @@ public class Book {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(nullable = false, length = 100)
+    @column(nullable = false, length = 100)
     private String author;
 
-    @Column(length = 100)
+    @column(length = 100)
     private String publisher;
 
-    @Column(name = "publication_date")
+    @column(name = "publication_date")
     private LocalDate publicationDate;
 
     @Column(nullable = false, length = 50)
@@ -47,7 +48,13 @@ public class Book {
     @Column(name = "quantity_available", nullable = false)
     private Integer quantityAvailable = 0;
 
-    @CreationTimestamp
+    @column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @DeationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -131,6 +138,22 @@ public class Book {
 
     public void setQuantityAvailable(Integer quantityAvailable) {
         this.quantityAvailable = quantityAvailable;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(boolean deleted) {
+        isDeleted = deleted;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 
     public LocalDateTime getCreatedAt() {
