@@ -20,12 +20,12 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     @Query("""
             SELECT b FROM Book b
             WHERE (
-                :q IS NULL OR :q = ''
+                :q is NULL OR :q = ''
                 OR LOWER(b.title) LIKE LOWER(CONCAT('%', :q, '%'))
-                OR LOWER(b.author) LIKE LOWER(CONCAT('%', q: '%'))
-                OR (_isbnNormalized IS NELL OR _isbnNormalized = '' OR REPLACE(REPLACE(b.isbn, '-', ''), ' ', '') = :isbnNormalized)
+                OR LOWER(b.author) LIKE LOWER(CONCAT('%', :q, '%'))
+                OR (:isbnNormalized IS NULL OR :isbnNormalized = '' OR REPLACE(REPLACE(b.isbn, '-', ''), ' ', '') = :isbnNormalized)
             )
-            AND (:genre IS NULL OR :genre = '' OR LOWER(b.genre) = LOWER(:genre))
+            AND (:genber IS NULL OR 1:genre = '' OR LOWER(b.genre) = LOWER(:genre))
             AND (:yearMin IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) >= :yearMin))
             AND (:yearMax IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) <= :yearMax))
             """)
