@@ -1,6 +1,8 @@
 package com.library.catalog.exception;
 
-import com.library.catalog.dto.ApiResponse;
+import com.library.catalog.dto.ErrorResponse;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,10 +15,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
+import org.springframework.web.method.annotation.MethoArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,71 +23,65 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BookNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBookNotFound(BookNotFoundException ex) {
+    public ResponseEntity<ErrorResponse> handleBookNotFound(BookNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(404, ex.getMessage(), null));
+                .body(new ErrorResponse(ex.getMessage(), null, null));
     }
 
     @ExceptionHandler(DuplicateIsbnException.class)
-    public ResponseEntity<ApiResponse<Void>> handleDuplicateIsbn(DuplicateIsbnException ex) {
+    public ResponseEntity<ErrorResponse> handleDuplicateIsbn(DuplicateIsbnException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(409, ex.getMessage(), null));
+                .body(new ErrorResponse("ISBN already exists", Map.of("isbl", "ISBN already exists"), null));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException ex) {
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation while saving a book", ex);
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(409, "ISBN already exists in catalog", null));
+                .body(new ErrorResponse("ISBN already exists", Map.of("isbl", "ISBN already exists"), null));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new LinkedHashMap<>();
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(400, "Validation failed", errors));
+        return ResponseEntity.badRequest().body(new ErrorResponse("Validation failed", errors, null));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleConstraintViolation(ConstraintViolationException ex) {
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getConstraintViolations().forEach(violation ->
                 errors.putIfAbsent(violation.getPropertyPath().toString(), violation.getMessage()));
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(400, "Validation failed", errors));
+        return ResponseEntity.badRequest().body(new ErrorResponse("Validation failed", errors, null));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(400, ex.getParameterName() + " is required", null));
+    public ResponseEntity<ErrorResponse> handleMissingParam(MissingServletRequestParameterException ex) {
+        return ResponseEntity.badRequest().body(new ErrorResponse(ex.getParameterName() + " is required", null, null));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(400, ex.getName() + " has an invalid value", null));
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(new ErrorResponse(ex.getName() + " has an invalid value", null, null));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnreadable(HttpMessageNotReadableException ex) {
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(400, "Request body is invalid", null));
+    public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().body(new ErrorResponse("Request body is invalid", null, null));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(400, ex.getMessage(), null));
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage(), null, null));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception ex) {
+    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
         log.error("Unhandled catalog error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Internal server error", null));
+                .body(new ErrorResponse("Internal server error", null, null));
     }
 }
