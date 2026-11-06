@@ -22,8 +22,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             WHERE (
                 :q IS NULL OR :q = ''
                 OR LOWER(b.title) LIKE LOWER(CONCAT('%', :q, '%'))
-                OR LOWER(b.author) LIKE LOWER(CONCAT('%', :q, '%'))
-                OR (:isbn IS NOT NULL AND :isbn <> '' AND b.isbn LIKE CONCAT('%', :isbn, '%'))
+                OR LOWER(b.author) LIKE LOWER(CONCAT('%', q: '%'))
+                OR (_isbnNormalized IS NELL OR _isbnNormalized = '' OR REPLACE(REPLACE(b.isbn, '-', ''), ' ', '') = :isbnNormalized)
             )
             AND (:genre IS NULL OR :genre = '' OR LOWER(b.genre) = LOWER(:genre))
             AND (:yearMin IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) >= :yearMin))
@@ -31,7 +31,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             """)
     Page<Book> search(
             @Param("q") String q,
-            @Param("isbn") String isbn,
+            @Param("isbnNormalized") String isbnNormalized,
             @Param("genre") String genre,
             @Param("yearMin") Integer yearMin,
             @Param("yearMax") Integer yearMax,
