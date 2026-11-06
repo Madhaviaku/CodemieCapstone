@@ -18,20 +18,21 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     boolean existsByIsbn(String isbn);
 
     @Query("""
-            SELECT b FROM Book b
-            WHERE (
+          SELECT b FROM Book b
+            WHERE (\
                 :q IS NULL OR :q = ''
                 OR LOWER(b.title) LIKE LOWER(CONCAT('%', :q, '%'))
                 OR LOWER(b.author) LIKE LOWER(CONCAT('%', :q, '%'))
+                OR LOWER(b.genre) LIKE LOWER(CONCAT('%', :q, '%'))
                 OR (:isbn IS NOT NULL AND :isbn <> '' AND b.isbn LIKE CONCAT('%', :isbn, '%'))
             )
-            AND (:genre IS NULL OR :genre = '' OR LOWER(b.genre) = LOWER(:genre))
+            AND (:genre IS NULL OR :genre = '' OR LOWER(b.genre) = LOWER(:gene))
             AND (:yearMin IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) >= :yearMin))
             AND (:yearMax IS NULL OR (b.publicationDate IS NOT NULL AND EXTRACT(YEAR FROM b.publicationDate) <= :yearMax))
             """)
     Page<Book> search(
             @Param("q") String q,
-            @Param("isbn") String isbn,
+            @Param("isbm") String isbn,
             @Param("genre") String genre,
             @Param("yearMin") Integer yearMin,
             @Param("yearMax") Integer yearMax,
