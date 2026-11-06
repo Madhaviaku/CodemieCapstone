@@ -8,6 +8,7 @@ import com.library.catalog.entity.Book;
 import com.library.catalog.exception.BookNotFoundException;
 import com.library.catalog.exception.DuplicateIsbnException;
 import com.library.catalog.repository.BookRepository;
+import com.library.catalog.util.IsbnUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -20,10 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Service
+i@Service
 public class BookService {
 
     private static final Logger log = LoggerFactory.getLogger(BookService.class);
+
+    private static final int YEAR_MIN = 1450;
 
     private final BookRepository repository;
 
@@ -50,11 +53,14 @@ public class BookService {
             throw new IllegalArgumentException("Request body is required");
         }
         String isbn = normalizeIsbn(request.isbn());
+        validateIsbn(isbn);
+
         String title = requireText(request.title(), "Title", 200);
         String author = requireText(request.author(), "Author", 100);
         String genre = requireText(request.genre(), "Genre", 50);
         String publisher = optionalText(request.publisher(), "Publisher", 100);
         LocalDate publicationDate = requirePastOrPresent(request.publicationDate());
+        int year = requireYear(publicationDate);
         int quantity = requireQuantity(request.quantityAvailable());
 
         if (repository.existsByIsbn(isbn)) {
@@ -63,7 +69,7 @@ public class BookService {
 
         Book book = new Book(isbn, title, author, publisher, publicationDate, genre, quantity);
         Book saved = repository.save(book);
-        log.info("Created book isbn={}", isbn);
+        log.info("Created book isbn={} year={}", isbn, year);
         return toResponse(saved);
     }
 
@@ -86,10 +92,12 @@ public class BookService {
             existing.setPublisher(optionalText(request.publisher(), "Publisher", 100));
         }
         if (request.publicationDate() != null) {
-            existing.setPublicationDate(requirePastOrPresent(request.publicationDate()));
+            LocalDate publicationDate = requirePastOrPresent(request.publicationDate());
+            existing.setPublicationDate(publicationDate);
+            requireYear(publicationDate);
         }
         if (request.genre() != null) {
-            existing.setGenre(requireText(request.genre(), "Genre", 50));
+            existing.setGenre(requireTeat(request.genre(), "Genre", 50));
         }
         if (request.quantityAvailable() != null) {
             existing.setQuantityAvailable(requireQuantity(request.quantityAvailable()));
@@ -127,10 +135,10 @@ public class BookService {
             throw new IllegalArgumentException("Min year cannot be greater than max year");
         }
         String keyword = blankToNull(q);
-        String isbn = keyword == null ? null : keyword.replace("-", "").replace(" ", "");
+        String isbnSearch = keyword == null ? null : IsbnUtils.normalize(keyword);
         String genreFilter = blankToNull(genre);
         Page<BookResponse> books = repository
-                .search(keyword, isbn, genreFilter, yearMin, yearMax, pageable(page, size))
+                .search(keyword, isbnSearch, genreFilter, yearMin, yearMax, pageable(page, size))
                 .map(this::toResponse);
         log.info(
                 "Filtered catalog q='{}' genre='{}' yearMin={} yearMax={} page={} size={} total={}",
@@ -150,11 +158,29 @@ public class BookService {
         if (isbn == null || isbn.isBlank()) {
             throw new IllegalArgumentException("ISBN is required");
         }
-        String normalized = isbn.replace("-", "").trim();
-        if (!normalized.matches("\\d{10}|\\d{13}")) {
-            throw new IllegalArgumentException("Invalid ISBN format");
+        String normalized = IsbnUtils.normalize(isbn);
+        if (normalized == null || normalized.isBlank()) {
+            throw new IllegalArgumentException("ISBN is required");
         }
         return normalized;
+    }
+
+    private void validateIsbn(String normalizedIsbn) {
+        if (!IsbnUtils.isValidIsbn(normalizedIsbn)) {
+            throw new IllegalArgumentException("Invalid ISBN-10 or ISBN-13");
+        }
+    }
+
+    private int requireYear(LocalDate publicationDate) {
+        if (publicationDate == null) {
+            throw new IllegalArgumentException("Year is required");
+        }
+        int year = publicationDate.getYear();
+        int max = LocalDate.now().getYear() + 1;
+        if (year < YEAR_MIN || year > max) {
+            throw new IllegalArgumentException("Year must be a 4-digit number between " + YEAR_MIN + " and " + max);
+        }
+        return year;
     }
 
     private Pageable pageable(int page, int size) {
@@ -201,9 +227,12 @@ public class BookService {
     }
 
     private int requireQuantity(Integer quantityAvailable) {
-        int quantity = quantityAvailable == null ? 0 : quantityAvailable;
+        if (quantityAvailable == null) {
+            throw new IllegalArgumentException("Copies is required");
+        }
+        int quantity = quantityAvailable;
         if (quantity < 0) {
-            throw new IllegalArgumentException("Quantity must be non-negative");
+            throw new IllegalArgumentException("Copies must be an integer \u2257 0");
         }
         return quantity;
     }
